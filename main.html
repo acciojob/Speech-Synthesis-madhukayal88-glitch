@@ -1,62 +1,59 @@
 <script>
-  // Required Elements (IDs must match exactly)
-  const text = document.getElementById("text");
-  const voice = document.getElementById("voice");
-  const rate = document.getElementById("rate");
-  const pitch = document.getElementById("pitch");
-  const speak = document.getElementById("speak");
-  const stop = document.getElementById("stop");
+  document.addEventListener("DOMContentLoaded", function () {
 
-  let voices = [];
-  let utterance = null;
+    const text = document.getElementById("text");
+    const voice = document.getElementById("voice");
+    const rate = document.getElementById("rate");
+    const pitch = document.getElementById("pitch");
+    const speak = document.getElementById("speak");
+    const stop = document.getElementById("stop");
 
-  // Load voices
-  function loadVoices() {
-    voices = window.speechSynthesis.getVoices();
-    voice.innerHTML = "";
+    if (!text || !voice || !rate || !pitch || !speak || !stop) return;
 
-    if (voices.length === 0) return;
+    let voices = [];
 
-    voices.forEach((v, i) => {
-      const option = document.createElement("option");
-      option.value = i;
-      option.textContent = v.name;
-      voice.appendChild(option);
+    function loadVoices() {
+      voices = speechSynthesis.getVoices();
+      voice.innerHTML = "";
+      voices.forEach((v, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = v.name;
+        voice.appendChild(opt);
+      });
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    speak.addEventListener("click", function () {
+      if (!text.value) return;
+
+      speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text.value);
+      utterance.voice = voices[voice.value];
+      utterance.rate = rate.value;
+      utterance.pitch = pitch.value;
+
+      speechSynthesis.speak(utterance);
     });
-  }
 
-  window.speechSynthesis.onvoiceschanged = loadVoices;
-  loadVoices();
+    stop.addEventListener("click", function () {
+      speechSynthesis.cancel();
+    });
 
-  // Speak button
-  speak.addEventListener("click", function () {
-    if (!text.value) return;
+    voice.addEventListener("change", () => {
+      if (speechSynthesis.speaking) speak.click();
+    });
 
-    window.speechSynthesis.cancel();
+    rate.addEventListener("input", () => {
+      if (speechSynthesis.speaking) speak.click();
+    });
 
-    utterance = new SpeechSynthesisUtterance(text.value);
-    utterance.voice = voices[voice.value];
-    utterance.rate = rate.value;
-    utterance.pitch = pitch.value;
+    pitch.addEventListener("input", () => {
+      if (speechSynthesis.speaking) speak.click();
+    });
 
-    window.speechSynthesis.speak(utterance);
-  });
-
-  // Stop button
-  stop.addEventListener("click", function () {
-    window.speechSynthesis.cancel();
-  });
-
-  // Restart speech on change
-  voice.addEventListener("change", function () {
-    if (window.speechSynthesis.speaking) speak.click();
-  });
-
-  rate.addEventListener("input", function () {
-    if (window.speechSynthesis.speaking) speak.click();
-  });
-
-  pitch.addEventListener("input", function () {
-    if (window.speechSynthesis.speaking) speak.click();
   });
 </script>
