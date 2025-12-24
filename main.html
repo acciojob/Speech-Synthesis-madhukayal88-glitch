@@ -1,55 +1,62 @@
 <script>
-  const textArea = document.getElementById("text");
-  const voiceSelect = document.getElementById("voice");
+  // Required Elements (IDs must match exactly)
+  const text = document.getElementById("text");
+  const voice = document.getElementById("voice");
   const rate = document.getElementById("rate");
   const pitch = document.getElementById("pitch");
-  const speakBtn = document.getElementById("speak");
-  const stopBtn = document.getElementById("stop");
+  const speak = document.getElementById("speak");
+  const stop = document.getElementById("stop");
 
   let voices = [];
+  let utterance = null;
 
+  // Load voices
   function loadVoices() {
-    voices = speechSynthesis.getVoices();
-    voiceSelect.innerHTML = "";
+    voices = window.speechSynthesis.getVoices();
+    voice.innerHTML = "";
 
-    voices.forEach((voice, index) => {
+    if (voices.length === 0) return;
+
+    voices.forEach((v, i) => {
       const option = document.createElement("option");
-      option.value = index;
-      option.textContent = voice.name;
-      voiceSelect.appendChild(option);
+      option.value = i;
+      option.textContent = v.name;
+      voice.appendChild(option);
     });
   }
 
-  speechSynthesis.onvoiceschanged = loadVoices;
+  window.speechSynthesis.onvoiceschanged = loadVoices;
   loadVoices();
 
-  speakBtn.addEventListener("click", () => {
-    const text = textArea.value;
-    if (!text) return;
+  // Speak button
+  speak.addEventListener("click", function () {
+    if (!text.value) return;
 
-    speechSynthesis.cancel();
+    window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = voices[voiceSelect.value];
+    utterance = new SpeechSynthesisUtterance(text.value);
+    utterance.voice = voices[voice.value];
     utterance.rate = rate.value;
     utterance.pitch = pitch.value;
 
-    speechSynthesis.speak(utterance);
+    window.speechSynthesis.speak(utterance);
   });
 
-  stopBtn.addEventListener("click", () => {
-    speechSynthesis.cancel();
+  // Stop button
+  stop.addEventListener("click", function () {
+    window.speechSynthesis.cancel();
   });
 
-  voiceSelect.addEventListener("change", () => {
-    if (speechSynthesis.speaking) speakBtn.click();
+  // Restart speech on change
+  voice.addEventListener("change", function () {
+    if (window.speechSynthesis.speaking) speak.click();
   });
 
-  rate.addEventListener("input", () => {
-    if (speechSynthesis.speaking) speakBtn.click();
+  rate.addEventListener("input", function () {
+    if (window.speechSynthesis.speaking) speak.click();
   });
 
-  pitch.addEventListener("input", () => {
-    if (speechSynthesis.speaking) speakBtn.click();
+  pitch.addEventListener("input", function () {
+    if (window.speechSynthesis.speaking) speak.click();
   });
 </script>
