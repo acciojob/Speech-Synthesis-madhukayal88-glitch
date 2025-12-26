@@ -1,59 +1,227 @@
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Text to Speech App</title>
+  <style>
+    /* Basic styling for a clean User Interface */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f4f4f9;
+      margin: 0;
+    }
 
-    const text = document.getElementById("text");
-    const voice = document.getElementById("voice");
-    const rate = document.getElementById("rate");
-    const pitch = document.getElementById("pitch");
-    const speak = document.getElementById("speak");
-    const stop = document.getElementById("stop");
+    .wrapper {
+      width: 600px;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
 
-    if (!text || !voice || !rate || !pitch || !speak || !stop) return;
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+    }
 
+    /* Voice Select Dropdown */
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    /* Range Sliders Container */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      background: #eee;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      width: 45%;
+    }
+
+    label {
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+
+    /* Text Area */
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      resize: none;
+      font-size: 16px;
+      box-sizing: border-box; /* Ensures padding doesn't affect width */
+      margin-bottom: 20px;
+    }
+
+    /* Buttons */
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+      transition: background 0.2s;
+    }
+
+    #speak {
+      background-color: #28a745;
+    }
+
+    #speak:hover {
+      background-color: #218838;
+    }
+
+    #stop {
+      background-color: #dc3545;
+    }
+
+    #stop:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <h1>Text to Speech</h1>
+
+    <select name="voice" id="voices">
+      <option value="">Select A Voice</option>
+    </select>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="rate">Rate: <span id="rateValue">1</span></label>
+        <input type="range" name="rate" id="rate" min="0.5" max="2" value="1" step="0.1">
+      </div>
+      <div class="control-group">
+        <label for="pitch">Pitch: <span id="pitchValue">1</span></label>
+        <input type="range" name="pitch" id="pitch" min="0" max="2" value="1" step="0.1">
+      </div>
+    </div>
+
+    <textarea name="text" placeholder="Type something here to speak..."></textarea>
+
+    <div class="buttons">
+      <button id="speak">Speak</button>
+      <button id="stop">Stop</button>
+    </div>
+  </div>
+
+  <script>
+    // 1. Initialize SpeechSynthesis API
+    const msg = new SpeechSynthesisUtterance();
     let voices = [];
+    const voicesDropdown = document.querySelector('[name="voice"]');
+    const options = document.querySelectorAll('[type="range"], [name="text"]');
+    const speakButton = document.querySelector('#speak');
+    const stopButton = document.querySelector('#stop');
+    const rateDisplay = document.querySelector('#rateValue');
+    const pitchDisplay = document.querySelector('#pitchValue');
 
-    function loadVoices() {
-      voices = speechSynthesis.getVoices();
-      voice.innerHTML = "";
-      voices.forEach((v, i) => {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.textContent = v.name;
-        voice.appendChild(opt);
+    // 2. Function to populate the voices dropdown
+    function populateVoices() {
+      voices = this.getVoices();
+      
+      // Clear existing options first to avoid duplicates
+      voicesDropdown.innerHTML = '<option value="">Select A Voice</option>';
+
+      // Map through available voices and create options
+      voices.forEach(voice => {
+        const option = document.createElement('option');
+        option.value = voice.name;
+        option.innerText = `${voice.name} (${voice.lang})`;
+        voicesDropdown.appendChild(option);
       });
     }
 
-    speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
+    // 3. Function to handle voice selection
+    function setVoice() {
+      msg.voice = voices.find(voice => voice.name === this.value);
+      // Requirement: If user switches voices mid-speech, restart speech.
+      toggle();
+    }
 
-    speak.addEventListener("click", function () {
-      if (!text.value) return;
+    // 4. Function to start or restart speech
+    function toggle(startOver = true) {
+      speechSynthesis.cancel(); // Always stop before starting to avoid overlap
+      
+      if (startOver) {
+        // Edge Case: If no text is entered, do not start
+        const textInput = document.querySelector('[name="text"]').value;
+        if (!textInput.trim()) return;
 
-      speechSynthesis.cancel();
+        msg.text = textInput;
+        speechSynthesis.speak(msg);
+      }
+    }
 
-      const utterance = new SpeechSynthesisUtterance(text.value);
-      utterance.voice = voices[voice.value];
-      utterance.rate = rate.value;
-      utterance.pitch = pitch.value;
+    // 5. Function to update Rate and Pitch dynamically
+    function setOption() {
+      msg[this.name] = this.value;
+      
+      // Update visual labels for better UX
+      if (this.name === 'rate') rateDisplay.textContent = this.value;
+      if (this.name === 'pitch') pitchDisplay.textContent = this.value;
 
-      speechSynthesis.speak(utterance);
-    });
+      // Note: Changing rate/pitch mid-speech requires a restart to take effect in most browsers
+      // If you want strict dynamic updating while speaking:
+      // if (speechSynthesis.speaking) toggle(); 
+    }
 
-    stop.addEventListener("click", function () {
-      speechSynthesis.cancel();
-    });
+    // Event Listeners
+    
+    // Voices load asynchronously in some browsers (like Chrome), so we need this event
+    speechSynthesis.addEventListener('voiceschanged', populateVoices);
+    
+    // Also try to populate immediately in case voices are already loaded
+    if (speechSynthesis.getVoices().length > 0) {
+        populateVoices.call(speechSynthesis);
+    }
 
-    voice.addEventListener("change", () => {
-      if (speechSynthesis.speaking) speak.click();
-    });
+    voicesDropdown.addEventListener('change', setVoice);
+    
+    options.forEach(option => option.addEventListener('change', setOption));
+    options.forEach(option => option.addEventListener('mousemove', setOption)); // Real-time update while dragging
 
-    rate.addEventListener("input", () => {
-      if (speechSynthesis.speaking) speak.click();
-    });
+    speakButton.addEventListener('click', toggle);
+    stopButton.addEventListener('click', () => toggle(false)); // Pass false to stop only
 
-    pitch.addEventListener("input", () => {
-      if (speechSynthesis.speaking) speak.click();
-    });
+  </script>
 
-  });
-</script>
+</body>
+</html>
